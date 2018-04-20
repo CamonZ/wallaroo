@@ -1704,10 +1704,11 @@ actor LocalTopologyInitializer is LayoutInitializer
     end
     _router_registry.application_ready_to_work()
     if _is_joining then
+      @printf[I32]("!@ _complete_initialization_lifecycle\n".cstring())
       // Call this on router registry instead of Connections directly
       // to make sure that other messages on registry queues are
       // processed first
-      _router_registry.inform_cluster_of_join()
+      _router_registry.inform_contacted_worker_of_initialization()
     end
     _initialization_lifecycle_complete = true
 
@@ -1750,7 +1751,7 @@ actor LocalTopologyInitializer is LayoutInitializer
       end
     end
 
-  be inform_joining_worker(conn: TCPConnection, worker_name: String,
+  be worker_join(conn: TCPConnection, worker_name: String,
     worker_count: USize)
   =>
     match _topology
@@ -1768,8 +1769,8 @@ actor LocalTopologyInitializer is LayoutInitializer
           Fail()
         end
       else
-        _router_registry.inform_joining_worker(conn, worker_name, worker_count,
-          t)
+        _router_registry.worker_join(conn, worker_name, worker_count,
+          t, t.worker_names.size())
       end
     else
       Fail()

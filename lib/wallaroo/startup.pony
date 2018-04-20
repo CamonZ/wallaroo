@@ -479,7 +479,8 @@ actor Startup
 
       let router_registry = RouterRegistry(auth,
         _startup_options.worker_name, data_receivers,
-        connections, this, _startup_options.stop_the_world_pause)
+        connections, this, _startup_options.stop_the_world_pause,
+        m.sender_name)
       router_registry.set_event_log(event_log)
       event_log.set_router_registry(router_registry)
 

@@ -278,7 +278,7 @@ class ControlChannelConnectNotifier is TCPConnectionNotify
         ifdef "autoscale" then
           match _layout_initializer
           | let lti: LocalTopologyInitializer =>
-            lti.inform_joining_worker(conn, m.worker_name, m.worker_count)
+            lti.worker_join(conn, m.worker_name, m.worker_count)
           else
             Fail()
           end
@@ -309,6 +309,31 @@ class ControlChannelConnectNotifier is TCPConnectionNotify
             Fail()
           end
         end
+      | let m: AnnounceJoiningWorkersMsg =>
+        for w in m.control_addrs.keys() do
+          try
+            let host = m.control_addrs(w)?._1
+            let control_addr = m.control_addrs(w)?
+            let data_addr = m.data_addrs(w)?
+            match _layout_initializer
+            | let lti: LocalTopologyInitializer =>
+              lti.add_joining_worker(w, host, control_addr, data_addr)
+            else
+              Fail()
+            end
+          else
+            Fail()
+          end
+        end
+        try
+          let cmsg = ChannelMsgEncoder.connected_to_joining_workers(_name,
+            _auth)?
+          _connections.send_control(m.sender, cmsg)
+        else
+          Fail()
+        end
+      | let m: ConnectedToJoiningWorkersMsg =>
+        _router_registry.report_connected_to_joining_worker(m.sender)
       | let m: AnnounceNewStatefulStepMsg =>
         m.update_registry(_router_registry)
       | let m: AnnounceNewSourceMsg =>
@@ -316,6 +341,10 @@ class ControlChannelConnectNotifier is TCPConnectionNotify
       | let m: StepMigrationCompleteMsg =>
         _router_registry.step_migration_complete(m.step_id)
       | let m: JoiningWorkerInitializedMsg =>
+        ifdef debug then
+          @printf[I32](("Rcvd JoiningWorkerInitializedMsg on Control " +
+            "Channel\n").cstring())
+        end
         try
           (let joining_host, _) = conn.remote_address().name()?
           match _layout_initializer
@@ -329,7 +358,7 @@ class ControlChannelConnectNotifier is TCPConnectionNotify
           Fail()
         end
       | let m: InitiateJoinMigrationMsg =>
-        _router_registry.remote_migration_request(m.new_workers)
+        _router_registry.remote_join_migration_request(m.new_workers)
       | let m: LeavingWorkerDoneMigratingMsg =>
         _router_registry.disconnect_from_leaving_worker(m.worker_name)
       | let m: AckMigrationBatchCompleteMsg =>

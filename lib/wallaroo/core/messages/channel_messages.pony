@@ -300,6 +300,19 @@ primitive ChannelMsgEncoder
   =>
     _encode(AnnounceConnectionsMsg(control_addrs, data_addrs), auth)?
 
+  fun announce_joining_workers(sender: String,
+    control_addrs: Map[String, (String, String)] val,
+    data_addrs: Map[String, (String, String)] val, auth: AmbientAuth):
+    Array[ByteSeq] val ?
+  =>
+    _encode(AnnounceJoiningWorkersMsg(sender, control_addrs, data_addrs),
+      auth)?
+
+  fun connected_to_joining_workers(sender: String, auth: AmbientAuth):
+    Array[ByteSeq] val ?
+  =>
+    _encode(ConnectedToJoiningWorkersMsg(sender), auth)?
+
   fun announce_new_stateful_step[K: (Hashable val & Equatable[K] val)](
     id: StepId, worker_name: String, key: K, state_name: String,
     auth: AmbientAuth): Array[ByteSeq] val ?
@@ -804,6 +817,25 @@ class val AnnounceConnectionsMsg is ChannelMsg
   =>
     control_addrs = c_addrs
     data_addrs = d_addrs
+
+class val AnnounceJoiningWorkersMsg is ChannelMsg
+  let sender: String
+  let control_addrs: Map[String, (String, String)] val
+  let data_addrs: Map[String, (String, String)] val
+
+  new val create(sender': String,
+    c_addrs: Map[String, (String, String)] val,
+    d_addrs: Map[String, (String, String)] val)
+  =>
+    sender = sender'
+    control_addrs = c_addrs
+    data_addrs = d_addrs
+
+class val ConnectedToJoiningWorkersMsg is ChannelMsg
+  let sender: String
+
+  new val create(sender': String) =>
+    sender = sender'
 
 trait val AnnounceNewStatefulStepMsg is ChannelMsg
   fun update_registry(r: RouterRegistry)
